@@ -3,16 +3,16 @@
 
 Lazarus Lazarus;
 //pins
-const int button = 4;
-const int bubble_switch = 1;
-const int led = 2;
+const int button = 3;
+const int bubble_switch = 2;
+const int led = 4;
 const int debounce_time = 100; //button debouncing
 byte button_state;
 byte bubble_state;
 unsigned int start_time = 0;
 unsigned int press_time;
-unsigned int interval_time = 10;
-unsigned int block_time = 1;
+unsigned int interval_time = 30;
+unsigned int block_time = 0;
 unsigned int duration = 0;
 //data send by ble
 char * buf;
@@ -22,6 +22,7 @@ int buflen = 0;
 const int button_reset_time = 2000;
 void start_bubbles(int sec) {
   digitalWrite(bubble_switch, LOW); //is on!!
+  digitalWrite(led, HIGH); //is on!!
   RFduinoBLE.send("BUBBLES!!", 9);
   if (bubble_state == LOW) {
     start_time = millis();
@@ -34,6 +35,7 @@ void start_bubbles(int sec) {
 
 void stop_bubbles() {
   digitalWrite(bubble_switch, HIGH);
+  digitalWrite(led, LOW);
   bubble_state = LOW;
   duration = 0;
 }
@@ -45,11 +47,15 @@ void setup() {
   pinMode(bubble_switch, OUTPUT);
   digitalWrite(bubble_switch, HIGH);
 
-  pinMode(button, INPUT_PULLDOWN);
-  digitalWrite(button, LOW);//pulldown
-  RFduino_pinWake(button, HIGH);
+  pinMode(led, OUTPUT);
+  digitalWrite(led, LOW);
 
-  button_state = LOW; //defines not pressed state
+  pinMode(button, INPUT_PULLUP);
+  digitalWrite(button, HIGH);//pullup
+  RFduino_pinWake(button, LOW);
+
+  
+  button_state = HIGH; //defines not pressed state
   bubble_state = LOW; //no bubbles currently
 }
 void loop() {
@@ -60,7 +66,7 @@ void loop() {
     if (digitalRead(button) != button_state) {
       RFduino_pinWake(button, button_state);
       button_state = ! button_state;
-      if (button_state == HIGH) { //button pressed
+      if (button_state == LOW) { //button pressed
         RFduinoBLE.send("Button Pressed", 15);
         press_time = millis();
         if (block_time == 0 || start_time==0 || ( bubble_state == LOW && (millis() - start_time) > (duration + SECONDS( block_time)))) {
